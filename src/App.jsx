@@ -330,9 +330,9 @@ export default function App() {
       setRouteError(null);
 
       // Select proper OSRM profile
-      // OSRM supports: 'driving' (car/motorcycle) and 'foot' (walking).
-      // We will map 'car' and 'motorcycle' to OSRM 'driving', and 'walking' to OSRM 'foot'.
-      const profile = transportMode === 'walking' ? 'foot' : 'driving';
+      // OSRM supports: 'driving' (car/motorcycle) and 'walking' (walking).
+      // We will map 'car' and 'motorcycle' to OSRM 'driving', and 'walking' to OSRM 'walking'.
+      const profile = transportMode === 'walking' ? 'walking' : 'driving';
       const coordinates = `${start.lng},${start.lat};${end.lng},${end.lat}`;
       const url = `https://router.project-osrm.org/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson`;
 
