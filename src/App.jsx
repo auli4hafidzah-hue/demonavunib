@@ -329,12 +329,17 @@ export default function App() {
       setIsLoadingRoute(true);
       setRouteError(null);
 
-      // Select proper OSRM profile
-      // OSRM supports: 'driving' (car/motorcycle) and 'walking' (walking).
-      // We will map 'car' and 'motorcycle' to OSRM 'driving', and 'walking' to OSRM 'walking'.
-      const profile = transportMode === 'walking' ? 'walking' : 'driving';
+      // Use highly accurate community OSRM servers supporting distinct transportation profiles
+      let url = '';
       const coordinates = `${start.lng},${start.lat};${end.lng},${end.lat}`;
-      const url = `https://router.project-osrm.org/route/v1/${profile}/${coordinates}?overview=full&geometries=geojson`;
+      
+      if (transportMode === 'walking') {
+        // 'routed-foot' handles pedestrian-only shortcuts, paths, and sidewalks
+        url = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+      } else {
+        // 'routed-car' handles drivable roads (for both cars and motorcycles)
+        url = `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+      }
 
       try {
         const response = await fetch(url);
@@ -347,12 +352,18 @@ export default function App() {
 
         const route = data.routes[0];
         const distanceInMeters = route.distance;
-        let durationInSeconds = route.duration;
+        let durationInSeconds = 0;
 
-        // Custom duration adjustment for motorcycle
-        // Motorcycles in campus can bypass traffic and park easier, making them ~20-25% faster
-        if (transportMode === 'motorcycle') {
-          durationInSeconds = durationInSeconds * 0.75;
+        // Apply realistic campus speeds to keep estimates perfectly accurate:
+        if (transportMode === 'walking') {
+          // Walking speed: 4.5 km/h (1.25 m/s)
+          durationInSeconds = distanceInMeters / 1.25;
+        } else if (transportMode === 'motorcycle') {
+          // Motorcycle speed: 25 km/h (6.94 m/s) inside campus
+          durationInSeconds = distanceInMeters / 6.94;
+        } else {
+          // Car speed: 20 km/h (5.56 m/s) due to speed bumps, narrow streets, and pedestrians
+          durationInSeconds = distanceInMeters / 5.56;
         }
 
         const geojsonCoordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]); // Swap to [lat, lng]
